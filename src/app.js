@@ -18,7 +18,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || ["http://localhost:8081"],
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
@@ -29,7 +29,7 @@ database.connect().catch(console.error);
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ["http://localhost:8081"]
+  origin: "*"
 }));
 app.use(express.json({ limit: '10mb' }));
 
