@@ -1,103 +1,66 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { Pool } = require('pg');
 
 class Database {
   constructor() {
-    this.db = null;
+    this.pool = null;
   }
 
-  connect() {
-    return new Promise((resolve, reject) => {
-      const dbPath = process.env.DATABASE_PATH || './database.sqlite';
-      this.db = new sqlite3.Database(dbPath, (err) => {
-        if (err) {
-          console.error('Erro ao conectar com SQLite:', err);
-          reject(err);
-        } else {
-          console.log('✅ Conectado ao SQLite');
-          this.initTables().then(resolve).catch(reject);
-        }
+  async connect() {
+    try {
+      this.pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
       });
-    });
+
+      // Test connection
+      await this.pool.query('SELECT NOW()');
+      console.log('💾 PostgreSQL connected successfully');
+      
+      // Create tables
+      await this.initTables();
+    } catch (error) {
+      console.error('❌ Database connection failed:', error);
+      throw error;
+    }
   }
 
-  initTables() {
-    return new Promise((resolve, reject) => {
-      const createUsersTable = `
-        CREATE TABLE IF NOT EXISTS users (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          username TEXT UNIQUE NOT NULL,
-          email TEXT UNIQUE NOT NULL,
-          password TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          last_login DATETIME,
-          is_online BOOLEAN DEFAULT 0
-        )
-      `;
+  async initTables() {
+    const createUsersTable = `
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        is_online BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login TIMESTAMP
+      )
+    `;
 
-      this.db.run(createUsersTable, (err) => {
-        if (err) {
-          console.error('Erro ao criar tabela users:', err);
-          reject(err);
-        } else {
-          console.log('✅ Tabela users criada/verificada');
-          resolve();
-        }
-      });
-    });
+    await this.pool.query(createUsersTable);
+    console.log('✅ Tables created/verified');
   }
 
-  query(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.all(sql, params, (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
+  async query(text, params) {
+    const result = await this.pool.query(text, params);
+    return result.rows;
   }
 
-  run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, params, function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({ id: this.lastID, changes: this.changes });
-        }
-      });
-    });
+  async get(text, params) {
+    const result = await this.pool.query(text, params);
+    return result.rows[0] || null;
   }
 
-  get(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.get(sql, params, (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row);
-        }
-      });
-    });
+  async run(text, params) {
+    const result = await this.pool.query(text + ' RETURNING id', params);
+    return { id: result.rows[0]?.id };
   }
 
-  close() {
-    return new Promise((resolve) => {
-      if (this.db) {
-        this.db.close((err) => {
-          if (err) {
-            console.error('Erro ao fechar banco:', err);
-          } else {
-            console.log('🔒 Conexão SQLite fechada');
-          }
-          resolve();
-        });
-      } else {
-        resolve();
-      }
-    });
+  async close() {
+    if (this.pool) {
+      await this.pool.end();
+      console.log('💾 Database connection closed');
+    }
   }
 }
 
