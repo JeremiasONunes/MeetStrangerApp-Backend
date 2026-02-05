@@ -3,15 +3,16 @@ const jwt = require('jsonwebtoken');
 const database = require('../database/database');
 
 class AuthService {
+
   async register(username, email, password) {
-    console.log('📝 AuthService.register called with:', { username, email });
-    
+    console.log('AuthService.register called with:', { username, email });
+
     // Check if email exists
     const existingEmail = await database.get(
       'SELECT id FROM users WHERE email = $1',
       [email]
     );
-    
+
     if (existingEmail) {
       throw new Error('Este email já está em uso');
     }
@@ -21,7 +22,7 @@ class AuthService {
       'SELECT id FROM users WHERE username = $1',
       [username]
     );
-    
+
     if (existingUsername) {
       throw new Error('Este nome de usuário já está em uso');
     }
@@ -29,25 +30,26 @@ class AuthService {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user
-    const query = 'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id';
+    // Insert user
+    const query =
+      'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id';
+
     const values = [username, email, passwordHash];
-    
-    console.log('📝 SQL Query:', query);
-    console.log('📝 SQL Values:', values);
-    
+
     const result = await database.run(query, values);
+
+    const userId = result.rows[0].id;
 
     // Generate token
     const token = jwt.sign(
-      { userId: result.id, email },
+      { userId, email },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
     return {
       user: {
-        id: result.id,
+        id: userId,
         username,
         email
       },
@@ -56,29 +58,26 @@ class AuthService {
   }
 
   async login(email, password) {
-    // Find user
     const user = await database.get(
       'SELECT * FROM users WHERE email = $1',
       [email]
     );
-    
+
     if (!user) {
       throw new Error('Invalid credentials');
     }
 
-    // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
+
     if (!isValidPassword) {
       throw new Error('Invalid credentials');
     }
 
-    // Update last login and online status
     await database.run(
       'UPDATE users SET last_login = CURRENT_TIMESTAMP, is_online = TRUE WHERE id = $1',
       [user.id]
     );
 
-    // Generate token
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET,
@@ -96,12 +95,10 @@ class AuthService {
   }
 
   async getUserById(userId) {
-    const user = await database.get(
+    return await database.get(
       'SELECT id, username, email, is_online FROM users WHERE id = $1',
       [userId]
     );
-    
-    return user || null;
   }
 
   async setUserOnline(userId, isOnline) {
