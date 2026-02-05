@@ -4,9 +4,11 @@ const database = require('../database/database');
 
 class AuthService {
   async register(username, email, password) {
+    console.log('📝 AuthService.register called with:', { username, email });
+    
     // Check if email exists
     const existingEmail = await database.get(
-      'SELECT id FROM users WHERE email = ?',
+      'SELECT id FROM users WHERE email = $1',
       [email]
     );
     
@@ -16,7 +18,7 @@ class AuthService {
 
     // Check if username exists
     const existingUsername = await database.get(
-      'SELECT id FROM users WHERE username = ?',
+      'SELECT id FROM users WHERE username = $1',
       [username]
     );
     
@@ -28,10 +30,13 @@ class AuthService {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Create user
-    const result = await database.run(
-      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-      [username, email, passwordHash]
-    );
+    const query = 'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id';
+    const values = [username, email, passwordHash];
+    
+    console.log('📝 SQL Query:', query);
+    console.log('📝 SQL Values:', values);
+    
+    const result = await database.run(query, values);
 
     // Generate token
     const token = jwt.sign(
@@ -53,7 +58,7 @@ class AuthService {
   async login(email, password) {
     // Find user
     const user = await database.get(
-      'SELECT * FROM users WHERE email = ?',
+      'SELECT * FROM users WHERE email = $1',
       [email]
     );
     
@@ -69,7 +74,7 @@ class AuthService {
 
     // Update last login and online status
     await database.run(
-      'UPDATE users SET last_login = CURRENT_TIMESTAMP, is_online = 1 WHERE id = ?',
+      'UPDATE users SET last_login = CURRENT_TIMESTAMP, is_online = TRUE WHERE id = $1',
       [user.id]
     );
 
@@ -92,7 +97,7 @@ class AuthService {
 
   async getUserById(userId) {
     const user = await database.get(
-      'SELECT id, username, email, is_online FROM users WHERE id = ?',
+      'SELECT id, username, email, is_online FROM users WHERE id = $1',
       [userId]
     );
     
@@ -101,8 +106,8 @@ class AuthService {
 
   async setUserOnline(userId, isOnline) {
     await database.run(
-      'UPDATE users SET is_online = ? WHERE id = ?',
-      [isOnline ? 1 : 0, userId]
+      'UPDATE users SET is_online = $1 WHERE id = $2',
+      [isOnline, userId]
     );
   }
 }
