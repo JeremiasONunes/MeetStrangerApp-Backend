@@ -15,7 +15,9 @@ const validate = (schema) => {
 
 const schemas = {
   register: Joi.object({
-    username: Joi.string().alphanum().min(3).max(50).required(),
+    username: Joi.string().pattern(/^[a-zA-Z0-9_-]+$/).min(3).max(50).required().messages({
+      'string.pattern.base': 'Username deve conter apenas letras, números, _ ou -'
+    }),
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required()
   }),

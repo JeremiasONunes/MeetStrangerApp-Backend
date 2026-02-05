@@ -6,20 +6,13 @@ class MatchingController {
       const { category } = req.body;
       const userId = req.user.userId;
       
-      if (!category || !['jogos', 'series', 'filmes'].includes(category)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid category. Use: jogos, series, filmes'
-        });
-      }
-      
+      // This would be handled by WebSocket in real implementation
       res.json({
         success: true,
-        message: 'Join queue via WebSocket for real-time matching',
-        instructions: `Use WebSocket event: join_queue with category: ${category}`
+        message: 'Use WebSocket for real-time matching'
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(400).json({
         success: false,
         message: error.message
       });
@@ -33,10 +26,10 @@ class MatchingController {
       
       res.json({
         success: true,
-        message: 'Left all queues successfully'
+        message: 'Left all queues'
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(400).json({
         success: false,
         message: error.message
       });

@@ -4,14 +4,24 @@ const database = require('../database/database');
 
 class AuthService {
   async register(username, email, password) {
-    // Check if user exists
-    const existingUser = await database.get(
-      'SELECT id FROM users WHERE email = ? OR username = ?',
-      [email, username]
+    // Check if email exists
+    const existingEmail = await database.get(
+      'SELECT id FROM users WHERE email = ?',
+      [email]
     );
     
-    if (existingUser) {
-      throw new Error('User already exists');
+    if (existingEmail) {
+      throw new Error('Este email já está em uso');
+    }
+
+    // Check if username exists
+    const existingUsername = await database.get(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+    
+    if (existingUsername) {
+      throw new Error('Este nome de usuário já está em uso');
     }
 
     // Hash password

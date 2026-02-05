@@ -10,19 +10,26 @@ const activeRooms = new Map();
 
 class MatchingService {
   joinQueue(userId, socketId, category) {
+    console.log(`📥 joinQueue called: userId=${userId}, category=${category}`);
+    
     // Remove user from all queues if already exists
     this.leaveAllQueues(userId);
 
     // Check if there's someone waiting in this category
     const queue = waitingQueues[category];
     if (!queue) {
+      console.log(`❌ Invalid category: ${category}`);
       throw new Error('Invalid category');
     }
+
+    console.log(`📊 Current queue for ${category}:`, queue.length, 'users waiting');
 
     if (queue.length > 0) {
       // Match found!
       const partner = queue.shift();
       const roomId = uuidv4();
+      
+      console.log(`🎯 Match found! Partner: ${partner.userId}, Room: ${roomId}`);
       
       // Create room
       const room = {
@@ -37,6 +44,7 @@ class MatchingService {
       };
       
       activeRooms.set(roomId, room);
+      console.log(`🏠 Room created:`, room);
       
       return {
         matched: true,
@@ -47,11 +55,14 @@ class MatchingService {
       };
     } else {
       // Add to queue
-      queue.push({
+      const queueItem = {
         userId,
         socketId,
         timestamp: Date.now()
-      });
+      };
+      
+      queue.push(queueItem);
+      console.log(`⏳ Added to queue. Position: ${queue.length}`);
       
       return {
         matched: false,
