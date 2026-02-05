@@ -30,15 +30,15 @@ class AuthService {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Insert user
-    const query =
-      'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id';
-
+    // Create user
+    const query = 'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id';
     const values = [username, email, passwordHash];
-
-    const result = await database.run(query, values);
-
-    const userId = result.rows[0].id;
+    
+    console.log('📝 SQL Query:', query);
+    console.log('📝 SQL Values:', values);
+    
+    const result = await database.query(query, values);
+    const userId = result[0].id;
 
     // Generate token
     const token = jwt.sign(
