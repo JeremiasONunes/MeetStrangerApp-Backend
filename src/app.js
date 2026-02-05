@@ -89,9 +89,13 @@ process.on('SIGINT', async () => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 WebSocket server ready`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}/docs`);
-  console.log(`💾 Database: SQLite`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 WebSocket server ready`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}/docs`);
+    console.log(`💾 Database: SQLite`);
+  });
+}
+
+module.exports = app;
