@@ -3,7 +3,16 @@ const authService = require('../services/auth.service');
 class AuthController {
   async register(req, res) {
     try {
+      console.log('📝 Register request body:', req.body);
       const { username, email, password } = req.body;
+      
+      if (!username || !email || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Campos obrigatórios: username, email, password'
+        });
+      }
+      
       const result = await authService.register(username, email, password);
       
       res.status(201).json({
@@ -11,6 +20,7 @@ class AuthController {
         data: result
       });
     } catch (error) {
+      console.error('❌ Register error:', error);
       res.status(400).json({
         success: false,
         message: error.message
