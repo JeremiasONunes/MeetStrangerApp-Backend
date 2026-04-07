@@ -78,7 +78,6 @@ class ChatController {
         success: true,
         // Objeto contendo os dados da resposta
         data: {
-          // Array vazio de mensagens (placeholder para implementação futura)
           messages: [],
           // Objeto contendo informações de paginação
           pagination: {
