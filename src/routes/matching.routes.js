@@ -1,48 +1,42 @@
-// Importa o framework Express para criação de rotas
+// Importa o framework Express para criação de rotas HTTP
 const express = require('express');
 
-// Importa o controller responsável pelas ações do chat
-const chatController = require('../controllers/chat.controller');
+// Importa o controller responsável pela lógica de matching (fila/pareamento)
+const matchingController = require('../controllers/matching.controller');
 
-// Importa o middleware de autenticação
+// Importa o middleware de autenticação (garante que o usuário esteja logado)
 const authMiddleware = require('../middleware/auth.middleware');
 
-// Importa o middleware de validação e os schemas definidos
+// Importa a função de validação e os schemas para validação das requisições
 const { validate, schemas } = require('../middleware/validation.middleware');
 
-// Importa os limitadores de requisição (rate limit)
-const { chatLimiter, messageLimiter } = require('../middleware/rateLimit.middleware');
+// Importa o limitador de requisições para controle de uso da API
+const { chatLimiter } = require('../middleware/rateLimit.middleware');
 
-// Cria uma instância do roteador do Express
+// Cria uma instância de roteador do Express
 const router = express.Router();
 
-// Aplica o middleware de autenticação em TODAS as rotas abaixo
+// Aplica o middleware de autenticação em todas as rotas deste router
 router.use(authMiddleware);
 
-// Aplica um limitador geral de requisições para rotas de chat
+// Aplica um limitador geral para evitar excesso de requisições
 router.use(chatLimiter);
 
-// Rota GET para listar todas as salas de chat do usuário
-router.get('/rooms',
-  chatController.getRooms // Chama o método que retorna as salas
+// Rota POST para entrar na fila de matching
+router.post('/find',
+  validate(schemas.joinQueue), // Valida os dados enviados com base no schema de entrada na fila
+  matchingController.joinQueue // Executa a lógica de entrada na fila
 );
 
-// Rota GET para buscar mensagens de uma sala específica
-router.get('/rooms/:roomId/messages',
-  chatController.getRoomMessages // Retorna mensagens da sala informada
+// Rota DELETE para sair da fila de matching
+router.delete('/leave',
+  matchingController.leaveQueue // Executa a lógica de saída da fila
 );
 
-// Rota POST para enviar uma mensagem em uma sala específica
-router.post('/rooms/:roomId/messages',
-  messageLimiter, // Limita a quantidade de mensagens enviadas (anti-spam)
-  validate(schemas.message), // Valida o corpo da requisição com base no schema
-  chatController.sendMessage // Envia a mensagem para a sala
+// Rota GET para obter estatísticas da fila de matching
+router.get('/stats',
+  matchingController.getQueueStats // Retorna informações como quantidade de usuários na fila, etc.
 );
 
-// Rota POST para sair de uma sala específica
-router.post('/rooms/:roomId/leave',
-  chatController.leaveRoom // Executa a lógica de saída da sala
-);
-
-// Exporta o router para ser utilizado na aplicação
+// Exporta o router para ser utilizado na aplicação principal
 module.exports = router;
