@@ -115,7 +115,7 @@ app.use((err, req, res, next) => {
 // ===============================
 // Captura interrupção do processo (Ctrl + C)
 process.on('SIGINT', async () => {
-  console.log('\n🔄 Shutting down gracefully...');
+  console.log('\n Shutting down gracefully...');
   // Fecha conexão com o banco antes de encerrar
   await database.close();
   process.exit(0);
@@ -137,6 +137,5 @@ if (process.env.NODE_ENV !== 'test') {
 // ===============================
 // EXPORTAÇÃO
 // ===============================
-
 // Exporta a aplicação (útil para testes)
 module.exports = app;
